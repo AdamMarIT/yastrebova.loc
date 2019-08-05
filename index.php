@@ -1,121 +1,69 @@
 <?php
-// обрабатываем форму авторизации
-if (isset($_POST['submit'])){
-    $username=$_POST['username'];
-    $email=$_POST['email'];
-    $password=$_POST['password'];
-} else {
-	$username="";
-    $email="";
-    $password="";
-}
-// выбор языка пользователем
-//$languages=["en" => "English", "ua" => "Українська", "ru" => "Русский", "de" => "Deutsch", "fr" => "Français"];
-$languages = ["English","Українська","Русский","Deutsch","Français"];
+	require_once 'init.php';
 
-//cоздатем массив пользователей сайта 
-$users = [];
-    $users["5"] = ["name" => "Denis", "email" => "denis@test.com", "lang" => "ru"];
-    $users["10"] = ["name" => "Vlad", "email" => "anton@gmail.com", "lang" => "en"];
-    $users["125"] = ["name" => "Alex", "email" => "alex@test.com", "lang" => "ua"];
-    $users["24"] = ["name" => "Nikola", "email" => "nikola@gmail.com", "lang" => "en"];
-    $users["65"] = ["name" => "Maryna", "email" => "maryna@test.com", "lang" => "de"];
-    $users["3"] = ["name" => "Vlad", "email" => "vlad@gmail.com", "lang" => "ua"];
-    $users["7"] = ["name" => "Denis", "email" => "denis@test.com", "lang" => "ua"];
-    $users["11"] = ["name" => "Anton", "email" => "anton@gmail.com", "lang" => "en"];
-    $users["155"] = ["name" => "Alex", "email" => "alex@test.com", "lang" => "ua"];
-    $users["28"] = ["name" => "Alex", "email" => "nikola@gmail.com", "lang" => "de"];
-    $users["165"] = ["name" => "Maryna", "email" => "maryna@test.com", "lang" => "en"];
-    $users["13"] = ["name" => "Vlad", "email" => "vlad@gmail.com", "lang" => "en"];
-    //print_r($users);
-echo "Общее количество пользователей сайта: ", count($users),"<br />";
-ksort($users);
-// пользователя с максимальным и минимальным айди
-reset ($users);
-$minId = key($users);
-echo "Пользователь c минимальным айди: ", $users[$minId]['name'],"<br />";
+	$smtp = $pdo->prepare("SELECT * FROM chats");
+	$smtp->execute();
+	$chats = $smtp->fetchAll();
 
-end($users);
-$maxId = key($users);
-echo "Пользователь c max айди: ", $users[$minId]['lang'],"<br />";
-// приветствуем пользователя на его языке
-$nativaLang = ["ua" => "Привіт!", "en" => "Hello!","de" => "Hallo!","ru" => "Привет!"];
-if ($users[$minId]['lang'] == $users[$maxId]['lang']){
-	$key = $users[$minId]['lang'];
-	echo $nativaLang[$key],"<br />";
-} else {
-	$key1 = $users[$minId]['lang'];
-	$key2 = $users[$maxId]['lang'];
-	echo $nativaLang[$key1],"<br />", $nativaLang[$key2],"<br />";
-}
-//выведите на экран имена пользователей который встречаются более одного раза и количество повторений имени
-$nameUser = [];
-foreach ($users as $key => $value) {
-	foreach ($value as $key1 => $value1) {
-		if ($key1=="name") {
-		$nameUser[] = $value1; continue;
-		}
-	}
-}
-$nameUserCount = array_count_values($nameUser);
-foreach ($nameUserCount as $key => $value) {
-	if ($value > 1)
-	    echo "$key &nbsp; совпадает &nbsp;$value раза <br />";
-}
-//разделите пользователей на массивы по языку
-$ua = [];
-$en = [];
-$de = [];
-$ru = [];
-foreach ($users as $key => $value) {
-	foreach ($value as $key1 => $value1) {
-		switch ($key1) {
-		    case $value1 == "ua":
-                $ua[] = $value;
-                break;
-            case $value1 == "en":
-                $en[] = $value;
-                break;
-            case $value1 == "de":
-                $de[] = $value;
-                break;
-            case $value1 == "ru":
-                $ru[] = $value;
-                break;    
-		}
-	}
-}
-print_r($ua);
-echo "<br /><br />";
-print_r($en);
-echo "<br /><br />";
-print_r($de);
-echo "<br /><br />";
-print_r($ru);
-echo "<br /><br />";
 ?>
 
+<!DOCTYPE html>
 <html>
-    <head>
-    <title> </title>
-    </head>
-    <body>
-	     <form name ="authorization" action="" method= "POST" align="center">
-	     	<p><select size="1">
-	     		<?php 
-	     		for ($i = 0; $i < count($languages); $i++) {
-                    echo "<option> $languages[$i] </option>";
-                }
-	     	    ?>
-            </select></p>
-	     	<label>Имя &nbsp; &nbsp;</label>
-	     	<input type="text" name="username" value="<?php echo $username; ?>"><br /><br />
-	     	<label>Email  &nbsp; </label>
-	     	<input type="email" name="email" value="<?php echo $email; ?>"><br /><br />
-	     	<label>Пароль</label>
-	     	<input type="password" name="password" value="<?php echo $password; ?>"><br /><br / >
-	     	<input type="submit" name="submit">
-	     	<input type="reset" name="reset" value="Очистить форму">
-	     </form>   
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Simple chat without registration</title>
+
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+		<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+
+	</head>
+	<body>
+		<div class="row">
+			<div class="container">
+				<h1>the list of topics</h1>
+				<ol>
+					<?php foreach ($chats as $chat) { ?>
+					<li class="room" data-name="<?php echo base64_encode($chat["id"]); ?>"><?php echo $chat["chat_name"]; ?></li>
+				<?php } ?>
+				</ol>
+			</div>
+			<form>
+				<input type="hidden" name="chat" id="chat" value="">
+				<input type="hidden" name="name" id="name" value="">
+			</form>
+		</div>
+	
+
+<script type="text/javascript">
+	$(document).ready(function () { 
+
+	  $('.room').click(function () { 
+	  	$( "#login" ).remove();
+	  	$( `<div class="input-group mb-3" id="login"><input type="text" placeholder="Insert your name" id="loginName" required><div class="input-group-append"><button class="btn btn-outline-secondary" type="button" onclick="logIn()">Login</button></div></div>` ).insertAfter($(this))
+	  		document.getElementById("chat").value = $(this).attr('data-name')
+	  	
+	  });
+
+	});
+
+	function logIn() {
+  	$.post({
+		  url: '/login.php',
+		  data: {name : document.getElementById("loginName").value,
+						 chat: document.getElementById("chat").value
+						},
+		  success: function(response){
+		    document.getElementById("loginName").value = ""
+		    if (!response) {
+		    	document.location.replace("/topic.php");
+		    } else {
+		    	consol.log("enter another name")
+		    }
+		  },
+		});
+  }
+</script>
+
 	</body>
 </html>
