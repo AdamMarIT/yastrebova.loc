@@ -28,7 +28,7 @@
 				<?php } ?>
 				</ol>
 			</div>
-			<form>
+			<form id="loginForm" action="/topic.php" method="POST">
 				<input type="hidden" name="chat" id="chat" value="">
 				<input type="hidden" name="name" id="name" value="">
 			</form>
@@ -48,20 +48,8 @@
 	});
 
 	function logIn() {
-  	$.post({
-		  url: '/login.php',
-		  data: {name : document.getElementById("loginName").value,
-						 chat: document.getElementById("chat").value
-						},
-		  success: function(response){
-		    document.getElementById("loginName").value = ""
-		    if (!response) {
-		    	document.location.replace("/topic.php");
-		    } else {
-		    	consol.log("enter another name")
-		    }
-		  },
-		});
+  	document.getElementById("name").value = document.getElementById("loginName").value;
+  	document.getElementById("loginForm").submit();
   }
 </script>
 
