@@ -1,48 +1,50 @@
 <?php
 require_once 'init.php';
-	$userName = $_POST["name"];
-	$chatId = base64_decode($_POST["chat"]);
+$userName = $_POST["name"];
+$chatId = $_POST["chat"];
 
-	try {
-		$mysql = "INSERT INTO `users`(`name`, `chat_id`) VALUES(:name, :chat_id)";
-		$params = ["name" => $userName, "chat_id" => $chatId];
-		pdoInsert($pdo, $mysql, $params);
-	}
-	catch(PDOException $e)
-	{
-	   echo $e->getMessage();
-	}
+try {
+	$mysql = "INSERT INTO `users`(`name`, `chat_id`) VALUES(:name, :chat_id)";
+	pdoInsert($pdo, $mysql, [
+		"name" => $userName, 
+		"chat_id" => $chatId
+	]);
+}
+catch(PDOException $e)
+{
+	echo $e->getMessage();
+}
 
-	$mysql = "SELECT chat_name FROM chats WHERE id = :chat_id";
-	$params = ["chat_id" => $chatId];
-	$chatName = pdoFetch($pdo, $mysql, $params);
+$mysql = "SELECT chat_name FROM chats WHERE id = :chat_id";
+$chatName = pdoFetch($pdo, $mysql, ["chat_id" => $chatId]);
 
-	$mysql = "SELECT id FROM users WHERE chat_id = :chat_id AND name = :name";
-	$params = ["chat_id" => $chatId, "name" => $userName];
-	$userId = pdoFetch($pdo, $mysql, $params);
+$mysql = "SELECT id FROM users WHERE chat_id = :chat_id AND name = :name";
+$userId = pdoFetch($pdo, $mysql, [
+	"chat_id" => $chatId, 
+	"name" => $userName
+]);
 	
-	$mysql = "SELECT * FROM users WHERE chat_id = :chat_id";
-	$params = ["chat_id" => $chatId];
-	$users = pdoFetchAll($pdo, $mysql, $params);
+$mysql = "SELECT * FROM users WHERE chat_id = :chat_id";
+$users = pdoFetchAll($pdo, $mysql, ["chat_id" => $chatId]);
 
-	$nowInChat = count($users);
-	$timestamp = strtotime("now") - 60*60;
-	$dateMinusHour = date('y-m-d H:i:s', $timestamp);
+$nowInChat = count($users);
+$timestamp = strtotime("now") - 60*60;
+$dateMinusHour = date('y-m-d H:i:s', $timestamp);
 
-	$mysql = "SELECT id, message FROM messages WHERE chat_id = :chat_id AND create_at >= :hour";
-	$params = ["chat_id" => $chatId, "hour" => $dateMinusHour];
-	$messages = pdoFetchAll($pdo, $mysql, $params);
+$mysql = "SELECT id, message FROM messages WHERE chat_id = :chat_id AND create_at >= :hour";
+$messages = pdoFetchAll($pdo, $mysql, [
+	"chat_id" => $chatId, 
+	"hour" => $dateMinusHour
+]);
 	
+if (empty($messages)) {
+	$mysql = "SELECT id, message FROM messages WHERE chat_id = :chat_id AND id = (SELECT MAX(id) FROM messages WHERE chat_id = :chat_id)";
+	$messages = pdoFetchAll($pdo, $mysql, ["chat_id" => $chatId]);
+
 	if (empty($messages)) {
-		$mysql = "SELECT id, message FROM messages WHERE chat_id = :chat_id AND id = (SELECT MAX(id) FROM messages WHERE chat_id = :chat_id)";
-		$params = ["chat_id" => $chatId];
-		$messages = pdoFetchAll($pdo, $mysql, $params);
-
-		if (empty($messages)) {
-			$messages[0] = array("id" => '1', "message" => 'Welcome to our chat');
-		}
-
+		$messages[0] = array("id" => '1', "message" => 'Welcome to our chat');
 	}
+}
 
 ?>
 
@@ -51,55 +53,54 @@ require_once 'init.php';
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 		<title>Simple chat without registration</title>
-
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 		<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-
 	</head>
-<body>
-	<div class="row">
-		<div class="container">
-			<h1><?php echo $chatName["chat_name"]; ?></h1>
+	<body>
+		<div class="row">
+			<div class="container">
+				<h1><?php echo $chatName["chat_name"]; ?></h1>
+			</div>
 		</div>
-	</div>
-	<div class="row">
-		<div class="container">
-			<div class="row chatField">
-				<div class="col-md-3">
-					<div>
-						<p><b> Now in chat </b></p>
-						<p><?php echo $nowInChat; ?></p>
-					</div>
-					<div>
-						<p><b> People in chat </b></p>
-						<?php foreach ($users as $user) { ?>
-							<?php
-							if ($user["name"] == $userName) { 
-							    ?>
+		<div class="row">
+			<div class="container">
+				<div class="row chatField">
+					<div class="col-md-3">
+						<div>
+							<p><b> Now in chat </b></p>
+							<p><?php echo $nowInChat; ?></p>
+						</div>
+						<div>
+							<p><b> People in chat </b></p>
+						</div>
+						<div id="userList">
+							<?php foreach ($users as $user) { ?>
+								<?php
+								if ($user["name"] == $userName) {
+								?>
 								<p><?php echo $user["name"]; ?></p>
-								<?php 
-							} else { 
-							  ?>
-							  <p class="user"><?php echo $user["name"]; ?></p>
-							  <?php 
-							}
-							?>
+								<?php
+								} else {
+								?>
+								<p class="user" data-user="<?php echo $user['id']; ?>"><?php echo $user["name"]; ?></p>
+								<?php
+								}
+								?>
+							<?php } ?>
+						</div>
+					</div>
+					<div class="col-md-9" id="messageField">
+						<?php foreach ($messages as $message) { ?>
+						<p class="message" data-id="<?php echo $message['id']; ?>"><?php echo $message["message"]; ?></p>
 						<?php } ?>
 					</div>
 				</div>
-				<div class="col-md-9" id="messageField">
-					<?php foreach ($messages as $message) { ?>
-					<p class="message" data-id="<?php echo $message['id']; ?>"><?php echo $message["message"]; ?></p>
-					<?php } ?>
-				</div>
-			</div>
-			<div class="row">
-				<div class="col-md-3">
-					<button type="button" class="btn btn-dark">leave chat</button>
-				</div>
-				<div class="col-md-9">
-					<form>
+				<div class="row">
+					<div class="col-md-3">
+						<button type="button" class="btn btn-dark" onclick="logout(<?php echo $userId['id'];?>)">leave chat</button>
+					</div>
+					<div class="col-md-9">
 						<div class="input-group mb-3">
 							<input type="hidden" name="userName" id="userName" value="<?php echo $userName; ?>">
 							<input type="text" class="form-control" placeholder="Write something" aria-label="Write something" aria-describedby="button-addon2" id="formMessage" onkeydown="clickEnter()">
@@ -108,27 +109,32 @@ require_once 'init.php';
 								<button class="btn btn-outline-secondary" type="button" id="cancel" onclick="clearMessage()">Cancel</button>
 							</div>
 						</div>
-					</form>
+					</div>
 				</div>
 			</div>
-		</div>
 
 		<script type="text/javascript">
 			$(document).ready(function () { 
 				let userId = '<?php echo $userId['id'];?>'
 				let chatId = '<?php echo $chatId;?>'
 
-				setTimeout(function() { 
+				setInterval(function() { 
           getMessages(chatId)
+          getUsers(chatId)
         }, 3000);
 
-			  $('.user').click(function () { 
+			  $('#userList').on('click', 'p.user', function () { 
 			  	let whom = $(this).html();
-			  	console.log($(this))
 			  	$('#formMessage').val(`${whom} : `);
 			  	
 			  });
 			});
+
+			function clickEnter() {
+		  	if (event.keyCode == 13) {
+		  		document.getElementById('send').click()
+		  	}
+		  }
 
 			function sendMessage(userId, chatId) {
 		  	$.post({
@@ -141,7 +147,6 @@ require_once 'init.php';
 				  success: function(response){
 				  		getMessages(chatId);
 				  		$('#formMessage').val('')
-				    
 				  },
 				});
 		  }
@@ -165,14 +170,42 @@ require_once 'init.php';
 		  	}
 		  }
 
-		  function clickEnter() {
-		  	if (event.keyCode == 13) {
-		  		document.getElementById('send').click()
+		  function getUsers(chatId) {
+		  	if ($("p.user").last().attr('data-user')) {
+		  		console.log($("p.user").last().attr('data-user'))
+		  		$.post({
+					  url: '/user.php',
+					  data: {
+					  				user : $("p.user").last().attr('data-user'),
+					  				chatId : chatId
+									},
+						success: function(response){
+								if (response) {
+						 			let users = JSON.parse(response);
+						 		
+						 			for (key in users) {
+								 		$('#userList').append(`<p class="user" data-user="${users[key]['id']}">${users[key]['name']}</p>`)
+								 	}
+						 		}
+					  },
+					});
 		  	}
 		  }
 
 		  function clearMessage() {
 		  	$('#formMessage').val('')
+		  }
+
+		  function logout(userId) {
+		  	$.post({
+				  url: '/user.php',
+				  data: {
+				   				userId : userId
+								},
+				  success: function(response){
+				  	window.location.href = "/";
+				  },
+				});
 		  }
 		</script>
 	</body>
