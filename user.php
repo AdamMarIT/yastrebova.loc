@@ -1,18 +1,26 @@
 <?php 
+
 require_once 'init.php';
 
 if (!empty($_POST['userId'])){
 	try {
-		$mysql = "DELETE FROM `users` WHERE id = :id";
-		pdoInsert($pdo, $mysql, ["id" => $_POST['userId']]);
+		$sql = "DELETE FROM `users` WHERE id = :id";
+		pdoInsert($sql, ["id" => $_POST['userId']]);
+
+		echo json_encode([
+			'success' => true
+		]);
 	}
 	catch(PDOException $e)
 	{
-	   echo $e->getMessage();
+		echo json_encode([
+			'success' => false,
+			'error' => $e->getMessage()
+	    ]);
 	}
 } else {
-	$mysql = "SELECT * FROM users WHERE chat_id = :chat_id AND id > :id";
-	$users = pdoFetchAll($pdo, $mysql, [
+	$sql = "SELECT * FROM users WHERE chat_id = :chat_id AND id > :id";
+	$users = pdoFetchAll($sql, [
 		"chat_id" => $_POST['chatId'], 
 		"id" => $_POST['user']
 	]);

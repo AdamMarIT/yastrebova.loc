@@ -1,4 +1,5 @@
 <?php 
+
 $dns = "mysql:host=localhost;port=3306;dbname=chat;charset=utf8";
 
 $options = [
@@ -8,21 +9,27 @@ $options = [
 
 $pdo = new PDO($dns, 'root', 'root', $options);
 
-function pdoFetchAll($pdo, $mysql, $params = null) {
+function pdoFetchAll($mysql, $params = null) {
+	global $pdo;
+
 	$smtp = $pdo->prepare($mysql);
 	$smtp->execute($params);
 
 	return $smtp->fetchAll();
 }
 
-function pdoFetch($pdo, $mysql, $params = null) {
+function pdoFetch($mysql, $params = null) {
+	global $pdo;
+
 	$smtp = $pdo->prepare($mysql);
 	$smtp->execute($params);
 
 	return $smtp->fetch();
 }
 
-function pdoInsert($pdo, $mysql, $params = null) {
+function pdoInsert($mysql, $params = null) {
+	global $pdo;
+
 	$smtp = $pdo->prepare($mysql);
 	$smtp->execute($params);
 }

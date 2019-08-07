@@ -1,11 +1,13 @@
 <?php
-require_once 'init.php';
+
+require_once('fpdf/fpdf.php');
+
 $userName = $_POST["name"];
 $chatId = $_POST["chat"];
 
 try {
-	$mysql = "INSERT INTO `users`(`name`, `chat_id`) VALUES(:name, :chat_id)";
-	pdoInsert($pdo, $mysql, [
+	$sql = "INSERT INTO `users`(`name`, `chat_id`) VALUES(:name, :chat_id)";
+	pdoInsert($sql, [
 		"name" => $userName, 
 		"chat_id" => $chatId
 	]);
@@ -15,31 +17,31 @@ catch(PDOException $e)
 	echo $e->getMessage();
 }
 
-$mysql = "SELECT chat_name FROM chats WHERE id = :chat_id";
-$chatName = pdoFetch($pdo, $mysql, ["chat_id" => $chatId]);
+$sql = "SELECT chat_name FROM chats WHERE id = :chat_id";
+$chatName = pdoFetch($sql, ["chat_id" => $chatId]);
 
-$mysql = "SELECT id FROM users WHERE chat_id = :chat_id AND name = :name";
-$userId = pdoFetch($pdo, $mysql, [
+$sql = "SELECT id FROM users WHERE chat_id = :chat_id AND name = :name";
+$userId = pdoFetch($sql, [
 	"chat_id" => $chatId, 
 	"name" => $userName
 ]);
 	
-$mysql = "SELECT * FROM users WHERE chat_id = :chat_id";
-$users = pdoFetchAll($pdo, $mysql, ["chat_id" => $chatId]);
+$sql = "SELECT * FROM users WHERE chat_id = :chat_id";
+$users = pdoFetchAll($sql, ["chat_id" => $chatId]);
 
 $nowInChat = count($users);
 $timestamp = strtotime("now") - 60*60;
 $dateMinusHour = date('y-m-d H:i:s', $timestamp);
 
-$mysql = "SELECT id, message FROM messages WHERE chat_id = :chat_id AND create_at >= :hour";
-$messages = pdoFetchAll($pdo, $mysql, [
+$sql = "SELECT id, message FROM messages WHERE chat_id = :chat_id AND create_at >= :hour";
+$messages = pdoFetchAll($sql, [
 	"chat_id" => $chatId, 
 	"hour" => $dateMinusHour
 ]);
 	
 if (empty($messages)) {
-	$mysql = "SELECT id, message FROM messages WHERE chat_id = :chat_id AND id = (SELECT MAX(id) FROM messages WHERE chat_id = :chat_id)";
-	$messages = pdoFetchAll($pdo, $mysql, ["chat_id" => $chatId]);
+	$sql = "SELECT id, message FROM messages WHERE chat_id = :chat_id AND id = (SELECT MAX(id) FROM messages WHERE chat_id = :chat_id)";
+	$messages = pdoFetchAll($sql, ["chat_id" => $chatId]);
 
 	if (empty($messages)) {
 		$messages[0] = array("id" => '1', "message" => 'Welcome to our chat');
@@ -76,21 +78,22 @@ if (empty($messages)) {
 						</div>
 						<div id="userList">
 							<?php foreach ($users as $user) { ?>
-								<?php
-								if ($user["name"] == $userName) {
-								?>
-								<p><?php echo $user["name"]; ?></p>
-								<?php
-								} else {
-								?>
-								<p class="user" data-user="<?php echo $user['id']; ?>"><?php echo $user["name"]; ?></p>
-								<?php
-								}
-								?>
+								<?php if ($user["name"] == $userName) { ?>
+									<p class="active" data-user="<?php echo $user['id']; ?>"><?php echo $user["name"]; ?></p>
+								<?php } else { ?>
+									<p class="user active" data-user="<?php echo $user['id']; ?>"><?php echo $user["name"]; ?></p>
+								<?php }	?>
 							<?php } ?>
 						</div>
 					</div>
 					<div class="col-md-9" id="messageField">
+						<div>
+							<form action="pdf" method="POST">
+								<input type="hidden" name="chatId" id="chatId" value="<?php echo $chatId;?>">
+								<input type="hidden" name="chatName" id="chatName" value="<?php echo $chatName['chat_name'];?>">
+								<button class="btn btn-outline-secondary" type="submit" id="pdf">Download history</button>
+							</form>
+						</div>
 						<?php foreach ($messages as $message) { ?>
 						<p class="message" data-id="<?php echo $message['id']; ?>"><?php echo $message["message"]; ?></p>
 						<?php } ?>
@@ -117,6 +120,7 @@ if (empty($messages)) {
 			$(document).ready(function () { 
 				let userId = '<?php echo $userId['id'];?>'
 				let chatId = '<?php echo $chatId;?>'
+				
 
 				setInterval(function() { 
           getMessages(chatId)
@@ -171,20 +175,20 @@ if (empty($messages)) {
 		  }
 
 		  function getUsers(chatId) {
-		  	if ($("p.user").last().attr('data-user')) {
-		  		console.log($("p.user").last().attr('data-user'))
+		  	if ($("p.active").last().attr('data-user')) {
+		  		
 		  		$.post({
 					  url: '/user.php',
 					  data: {
-					  				user : $("p.user").last().attr('data-user'),
+					  				user : $("p.active").last().attr('data-user'),
 					  				chatId : chatId
 									},
 						success: function(response){
 								if (response) {
-						 			let users = JSON.parse(response);
+									let users = JSON.parse(response);
 						 		
 						 			for (key in users) {
-								 		$('#userList').append(`<p class="user" data-user="${users[key]['id']}">${users[key]['name']}</p>`)
+								 		$('#userList').append(`<p class="user active" data-user="${users[key]['id']}">${users[key]['name']}</p>`)
 								 	}
 						 		}
 					  },
